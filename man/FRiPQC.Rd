@@ -8,30 +8,17 @@
 \alias{fripQC}
 \title{Quality control for fraction of reads in peaks (FRiP)}
 \usage{
-atacFripQC(atacProcReads, atacProcPeak, bsgenome = NULL,
+atacFripQC(atacProc, bsgenome = NULL, reportOutput = NULL,
+  readsBedInput = NULL, peakBedInput = NULL, ...)
+
+\S4method{atacFripQC}{ATACProc}(atacProc, bsgenome = NULL,
   reportOutput = NULL, readsBedInput = NULL, peakBedInput = NULL,
   ...)
-
-\S4method{atacFripQC}{ATACProc}(atacProcReads, atacProcPeak,
-  bsgenome = NULL, reportOutput = NULL, readsBedInput = NULL,
-  peakBedInput = NULL, ...)
 
 fripQC(readsBedInput, peakBedInput, bsgenome = NULL,
   reportOutput = NULL, ...)
 }
 \arguments{
-\item{atacProcReads}{\code{\link{ATACProc-class}} object scalar.
-It has to be the return value of upstream process:
-\code{\link{atacSamToBed}}
-\code{\link{samToBed}}
-\code{\link{atacBedUtils}}
-\code{\link{bedUtils}}}
-
-\item{atacProcPeak}{\code{\link{ATACProc-class}} object scalar.
-It has to be the return value of upstream process:
-\code{\link{atacPeakCalling}},
-\code{\link{peakCalling}}.}
-
 \item{bsgenome}{\code{BSGenome} object scalar.
 BSGenome object for specific species.}
 
@@ -45,6 +32,18 @@ Reads BED file for peak calling.}
 Peaks BED file}
 
 \item{...}{Additional arguments, currently unused.}
+
+\item{atacProcReads}{\code{\link{ATACProc-class}} object scalar.
+It has to be the return value of upstream process:
+\code{\link{atacSamToBed}}
+\code{\link{samToBed}}
+\code{\link{atacBedUtils}}
+\code{\link{bedUtils}}}
+
+\item{atacProcPeak}{\code{\link{ATACProc-class}} object scalar.
+It has to be the return value of upstream process:
+\code{\link{atacPeakCalling}},
+\code{\link{peakCalling}}.}
 }
 \value{
 An invisible \code{\link{fripQC}} object scalar for downstream analysis.
@@ -64,19 +63,22 @@ or you can use \code{fripQC} instead.
 }
 \examples{
 library(R.utils)
+library(BSgenome.Hsapiens.UCSC.hg19)
 library(magrittr)
 td <- tempdir()
-options(atacConf=setConfigure("tmpdir",td))
+setTmpDir(td)
 
 bedbzfile <- system.file(package="esATAC", "extdata", "chr20.50000.bed.bz2")
 bedfile <- file.path(td,"chr20.50000.bed")
 bunzip2(bedbzfile,destname=bedfile,overwrite=TRUE,remove=FALSE)
 
-readsProc<-bedUtils(bedInput = bedfile,maxFragLen = 100, chrFilterList = NULL)
-peaksProc<- readsProc \%>\% atacPeakCalling
-library(BSgenome.Hsapiens.UCSC.hg19)
+bedUtils(bedInput = bedfile,maxFragLen = 100, chrFilterList = NULL)  \%>\%
+atacPeakCalling \%>\% atacFripQC(bsgenome=BSgenome.Hsapiens.UCSC.hg19)
 
-atacFripQC(readsProc,peaksProc,bsgenome=BSgenome.Hsapiens.UCSC.hg19)
+
+dir(td)
+
+
 
 }
 \seealso{

@@ -22,7 +22,7 @@ setMethod(
         if(length(prevSteps) > 0){
             if(!is.null(prevSteps[[1]])){
                 fastqSteps <- prevSteps[[1]]
-                fastqSteps<-unlist(fastqSteps)
+                fastqSteps<-c(unlist(fastqSteps),list())
                 fastqStep <- fastqSteps[[length(fastqSteps)]]
                 param(.Object)[["interleave"]] <- property(fastqStep)[["interleave"]]
                 param(.Object)[["singleEnd"]] <- property(fastqStep)[["singleEnd"]]
@@ -98,7 +98,7 @@ setMethod(
             paramList <- strsplit(paramList,"\\s+")[[1]]
             if(length(paramList)>0){
                 rejectp<-"--file1|--adapter1|--output1|--file2|--adapter2|--output2|--threads|--basename"
-                checkParam(.Object,paramList,rejectp)
+                checkParam(paramList,rejectp)
                 param(.Object)$paramList<-paramList
             }
         }
