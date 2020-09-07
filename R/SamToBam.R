@@ -4,42 +4,42 @@ setClass(Class = "SamToBam",
 
 
 setMethod(
-    f = "initialize",
+    f = "init",
     signature = "SamToBam",
-    definition = function(.Object,atacProc, ..., samInput = NULL, bamOutput = NULL, editable = FALSE){
-        .Object <- init(.Object,"SamToBam",editable,list(arg1=atacProc))
+    definition = function(.Object,prevSteps = list(),...){
+        atacProc <- NULL
+        if(length(prevSteps)>0){
+            atacProc <- prevSteps[[1]]
+        }
+        allparam <- list(...)
+        samInput <- allparam[["samInput"]]
+        bamOutput <- allparam[["bamOutput"]]
+        isSort <- allparam[["isSort"]]
+        
         # necessary parameters
         if((!is.null(atacProc)) ){
-            .Object@paramlist[["samInput"]] <- getParam(atacProc, "samOutput")
-            regexProcName <- sprintf("(sam|%s)", getProcName(atacProc))
+            input(.Object)[["samInput"]] <- getParam(atacProc, "samOutput")
         }else if(is.null(atacProc)){ # input
-            .Object@paramlist[["samInput"]] <- samInput
-            regexProcName <- "(sam)"
+            input(.Object)[["samInput"]] <- samInput
         }
         # unnecessary parameters
         if(is.null(bamOutput)){
-            prefix <- getBasenamePrefix(.Object, .Object@paramlist[["samInput"]], regexProcName)
-            .Object@paramlist[["name_tmp"]] <- file.path(.obtainConfigure("tmpdir"),
-                                                         paste0(prefix, ".", getProcName(.Object)))
-            .Object@paramlist[["bamOutput"]] <- file.path(.obtainConfigure("tmpdir"),
-                                                          paste0(prefix, ".", getProcName(.Object), ".bam"))
-            .Object@paramlist[["baiOutput"]] <- file.path(.obtainConfigure("tmpdir"),
-                                                          paste0(prefix, ".", getProcName(.Object), ".bam.bai"))
-        }else{
-            name_split <- unlist(base::strsplit(x = bamOutput, split = ".", fixed = TRUE))
-            suffix <- tail(name_split, 1)
-            if(suffix == "bam"){
-                .Object@paramlist[["name_tmp"]] <- paste0(name_split[-length(name_split)], collapse = ".")
-                .Object@paramlist[["bamOutput"]] <- bamOutput
-                .Object@paramlist[["baiOutput"]] <- paste0(.Object@paramlist[["bamOutput"]], ".bai", collapse = "")
-            }else{
-                .Object@paramlist[["name_tmp"]] <- bamOutput
-                .Object@paramlist[["bamOutput"]] <- paste0(.Object@paramlist[["name_tmp"]], ".bam", collapse = "")
-                .Object@paramlist[["baiOutput"]] <- paste0(.Object@paramlist[["bamOutput"]], ".bai", collapse = "")
+            param(.Object)[["name_tmp"]] <- getAutoPath(.Object, input(.Object)[["samInput"]],"sam|SAM","" )
+        
+            output(.Object)[["bamOutput"]] <- getAutoPath(.Object, input(.Object)[["samInput"]],"sam|SAM","bam")
+            if(isSort){
+                output(.Object)[["baiOutput"]] <- getAutoPath(.Object, input(.Object)[["samInput"]],"sam|SAM","bam.bai")
             }
-
+        }else{
+            bamOutput <- addFileSuffix(bamOutput,".bam")
+            param(.Object)[["name_tmp"]] <- substring(bamOutput,first = 1,last = nchar(bamOutput) - 4)
+            output(.Object)[["bamOutput"]] <- bamOutput
+            if(isSort){
+                output(.Object)[["baiOutput"]] <- addFileSuffix(bamOutput,".bai")
+            }
+            
         }
-        paramValidation(.Object)
+        param(.Object)[['isSort']] <- isSort
         .Object
 
     }
@@ -52,31 +52,20 @@ setMethod(
     f = "processing",
     signature = "SamToBam",
     definition = function(.Object,...){
-        .Object <- writeLog(.Object,paste0("processing file:"))
-        .Object <- writeLog(.Object,sprintf("source:%s",.Object@paramlist[["samInput"]]))
-        .Object <- writeLog(.Object,sprintf("Bam destination:%s",.Object@paramlist[["bamOutput"]]))
-        .Object <- writeLog(.Object,sprintf("Bai destination:%s",.Object@paramlist[["baiOutput"]]))
-        Rsamtools::asBam(file = .Object@paramlist[["samInput"]], destination = .Object@paramlist[["name_tmp"]])
+        
+        Rsamtools::asBam(file = input(.Object)[["samInput"]], 
+                         destination = param(.Object)[["name_tmp"]],
+                         overwrite = TRUE, indexDestination = param(.Object)[['isSort']])
         .Object
     }
 )
 
-setMethod(
-    f = "checkRequireParam",
-    signature = "SamToBam",
-    definition = function(.Object,...){
-        if(is.null(.Object@paramlist[["samInput"]])){
-            stop("Parameter samInput is required!")
-        }
-    }
-)
 
 setMethod(
-    f = "checkAllPath",
+    f = "genReport",
     signature = "SamToBam",
-    definition = function(.Object,...){
-        checkFileExist(.Object,.Object@paramlist[["samInput"]])
-        checkPathExist(.Object,.Object@paramlist[["bamOutput"]])
+    definition = function(.Object, ...){
+        .Object
     }
 )
 
@@ -93,9 +82,17 @@ setMethod(
 #' @param bamOutput \code{Character} scalar.
 #' Bam file output path. If ignored, bed file will be put in the same path as
 #' the sam file.
+#' @param isSort \code{Logical} scalar.
+#' Sort bam.
 #' @param ... Additional arguments, currently unused.
-#' @details The sam file wiil be automatically obtained from
-#' object(\code{atacProc}) or input by hand. bamOutput can be ignored.
+#' @details The parameter related to input and output file path
+#' will be automatically
+#' obtained from \code{\link{ATACProc-class}} object(\code{atacProc}) or
+#' generated based on known parameters
+#' if their values are default(e.g. \code{NULL}).
+#' Otherwise, the generated values will be overwrited.
+#' If you want to use this function independently,
+#' you can use \code{bamToBed} instead.
 #' @return An invisible \code{\link{ATACProc-class}} object scalar for
 #' downstream analysis.
 #' @author Wei Zhang
@@ -115,7 +112,7 @@ setMethod(
 
 
 setGeneric("atacSam2Bam",function(atacProc,
-                                  samInput = NULL, bamOutput = NULL, ...) standardGeneric("atacSam2Bam"))
+                                  samInput = NULL, bamOutput = NULL, isSort=TRUE, ...) standardGeneric("atacSam2Bam"))
 #' @rdname SamToBam
 #' @aliases atacSam2Bam
 #' @export
@@ -123,25 +120,17 @@ setMethod(
     f = "atacSam2Bam",
     signature = "ATACProc",
     definition = function(atacProc,
-                          samInput = NULL, bamOutput = NULL, ...){
-        atacproc <- new(
-            "SamToBam",
-            atacProc = atacProc,
-            samInput = samInput,
-            bamOutput = bamOutput)
-        atacproc <- process(atacproc)
-        invisible(atacproc)
+                          samInput = NULL, bamOutput = NULL, isSort=TRUE, ...){
+        allpara <- c(list(Class = "SamToBam", prevSteps = list(atacProc)),as.list(environment()),list(...))
+        step <- do.call(new,allpara)
+        invisible(step)
     }
 )
 #' @rdname SamToBam
 #' @aliases sam2bam
 #' @export
-sam2bam <- function(samInput, bamOutput = NULL, ...){
-    atacproc <- new(
-        "SamToBam",
-        atacProc = NULL,
-        samInput = samInput,
-        bamOutput = bamOutput)
-    atacproc <- process(atacproc)
-    invisible(atacproc)
+sam2bam <- function(samInput, bamOutput = NULL, isSort=TRUE, ...){
+    allpara <- c(list(Class = "SamToBam", prevSteps = list()),as.list(environment()),list(...))
+    step <- do.call(new,allpara)
+    invisible(step)
 }

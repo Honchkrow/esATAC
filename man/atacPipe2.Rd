@@ -4,12 +4,22 @@
 \alias{atacPipe2}
 \title{Pipeline for single replicate case-control paired-end sequencing data}
 \usage{
-atacPipe2(genome, case = list(fastqInput1 = "paths/To/fastq1", fastqInput2 =
-  "paths/To/fastq2", adapter1 = NULL, adapter2 = NULL),
-  control = list(fastqInput1 = "paths/To/fastq1", fastqInput2 =
-  "paths/To/fastq2", adapter1 = NULL, adapter2 = NULL), refdir = NULL,
-  tmpdir = NULL, threads = 2, interleave = FALSE, createReport = TRUE,
-  motifs = NULL, chr = c(1:22, "X", "Y"), p.cutoff = 1e-06, ...)
+atacPipe2(
+  genome,
+  case = list(fastqInput1 = "paths/To/fastq1", fastqInput2 = "paths/To/fastq2", adapter1
+    = NULL, adapter2 = NULL),
+  control = list(fastqInput1 = "paths/To/fastq1", fastqInput2 = "paths/To/fastq2",
+    adapter1 = NULL, adapter2 = NULL),
+  tmpdir = file.path(getwd(), "esATAC-pipeline"),
+  refdir = file.path(tmpdir, "refdir"),
+  threads = 2,
+  interleave = FALSE,
+  createReport = TRUE,
+  motifs = NULL,
+  chr = c(1:22, "X", "Y"),
+  p.cutoff = 1e-06,
+  ...
+)
 }
 \arguments{
 \item{genome}{\code{Character} scalar. The genome(like hg19, mm10, etc.) reference data in "refdir" to be used in the pipeline.}
@@ -24,9 +34,9 @@ the path(s) of the mate 1 fastq file(s), is required. \code{fastqInput2},
 the path(s) of the mate 2 fastq file(s), is required, when \code{interleave=FALSE}.
 \code{adapter1} and \code{adapter2} are optional.}
 
-\item{refdir}{\code{Character} scalar. The path for reference data being installed to and storage.}
-
 \item{tmpdir}{\code{Character} scalar. The temporary file storage path.}
+
+\item{refdir}{\code{Character} scalar. The path for reference data being installed to and storage.}
 
 \item{threads}{\code{Integer} scalar. The max threads allowed to be created.}
 
